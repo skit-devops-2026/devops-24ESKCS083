@@ -1,0 +1,15 @@
+# Ignore dependency directories
+node_modules
+**/node_modules
+
+# Ignore build artifacts
+dist
+**/dist
+
+# Ignore version control metadata
+.git
+
+# Ignore documentation, Kubernetes manifests, and monitoring configurations
+docs
+k8s
+monitoring

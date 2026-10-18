@@ -19,57 +19,82 @@ jobs:
         run: bash scripts/hygiene.sh
 
   # ---------------------------------------------------------------------------
-  # M3 — YOUR WORK STARTS HERE.
-  #
-  # Uncomment the job below and make it pass. Fill in the Makefile targets for
-  # your stack; do not change the target names, because this file calls them.
-  #
-  # The pipeline must genuinely fail when your tests fail. Do not add
-  # continue-on-error or "|| true" to make it green.
+  # M3 — Build and test job
   # ---------------------------------------------------------------------------
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Check out the repository source code
+      - name: Check out repository code
+        uses: actions/checkout@v4
 
-  # build-and-test:
-  #   name: Build and test
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     # Set up whichever runtime you need, for example:
-  #     # - uses: actions/setup-node@v4
-  #     #   with: { node-version: '20', cache: 'npm' }
-  #     # - uses: actions/setup-python@v5
-  #     #   with: { python-version: '3.12' }
-  #
-  #     - run: make install
-  #     - run: make test
-  #     - run: make build
+      # Step 2: Set up Node.js 24 runtime environment with npm cache for faster repeated runs
+      - name: Set up Node.js 24 and npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: Frontend/package-lock.json
+
+      # Step 3: Install application dependencies via Makefile target
+      - name: Install dependencies
+        run: make install
+
+      # Step 4: Run the test / linting suite via Makefile target (fails pipeline if tests fail)
+      - name: Run lint and test suite
+        run: make test
+
+      # Step 5: Build the production bundle via Makefile target
+      - name: Build production bundle
+        run: make build
 
   # ---------------------------------------------------------------------------
-  # M4 — Containerization. Uncomment and complete when you get there.
-  # The push to the registry is what proves your build actually ran, so it is
-  # not optional.
+  # M4 — Containerization and image publishing
   # ---------------------------------------------------------------------------
+  docker:
+    name: Build and push images
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    # Run only on pushes to main branch; do not run on pull requests or feature branches
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # Step 1: Check out the repository code to access Dockerfile and source files
+      - name: Check out repository code
+        uses: actions/checkout@v4
 
-  # docker:
-  #   name: Build and push images
-  #   needs: build-and-test
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: read
-  #     packages: write
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: docker/login-action@v3
-  #       with:
-  #         registry: ghcr.io
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
-  #     - uses: docker/build-push-action@v6
-  #       with:
-  #         context: ./backend
-  #         push: true
-  #         tags: ghcr.io/${{ github.repository }}-backend:${{ github.sha }}
-  #     # ... and the same for ./frontend
+      # Step 2: Extract Docker metadata (tags and labels) and lowercase repository name.
+      # OCI registry specification requires lowercase image names, but github.repository
+      # contains uppercase characters (devops-24ESKCS083). docker/metadata-action handles
+      # lowercasing automatically and tags with both the commit SHA and latest.
+      - name: Extract Docker metadata (tags and labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ github.sha }}
+            type=raw,value=latest
+
+      # Step 3: Authenticate with GitHub Container Registry using the automated GITHUB_TOKEN
+      - name: Log in to GitHub Container Registry (ghcr.io)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 4: Build multi-stage Docker image from repo root context and push to GHCR
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   # ---------------------------------------------------------------------------
   # M5 — Deployment. Add a deploy job here.

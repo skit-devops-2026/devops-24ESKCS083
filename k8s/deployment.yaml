@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Unique name identifying this Deployment within the Kubernetes namespace
+  name: craftcv-frontend
+  # Labels used for organizing, querying, and filtering Kubernetes objects
+  labels:
+    app: craftcv-frontend
+spec:
+  # Desired number of identical pod replicas to run for high availability and load balancing
+  replicas: 2
+
+  # Label selector that determines which Pods are managed by this Deployment
+  selector:
+    matchLabels:
+      app: craftcv-frontend
+
+  # Pod template specification used to create new pod instances
+  template:
+    metadata:
+      # Labels applied to each Pod instance (must match selector.matchLabels above)
+      labels:
+        app: craftcv-frontend
+    spec:
+      # Reference to secret containing credentials to pull images from private registries (GHCR).
+      # IMPORTANT SECURITY NOTE: The secret 'ghcr-pull' is generated manually by administrators using:
+      # kubectl create secret docker-registry ghcr-pull \
+      #   --docker-server=ghcr.io \
+      #   --docker-username=<GITHUB_USERNAME> \
+      #   --docker-password=<GITHUB_PAT> \
+      #   --docker-email=<EMAIL>
+      # This secret holds sensitive credentials and must NEVER be committed to source control.
+      imagePullSecrets:
+        - name: ghcr-pull
+
+      # List of containers executing inside the Pod
+      containers:
+        - name: craftcv-frontend
+          # Image built and published to GitHub Container Registry (GHCR)
+          image: ghcr.io/skit-devops-2026/devops-24eskcs083:latest
+          # Always pull the latest image tag to guarantee updated deployments
+          imagePullPolicy: Always
+
+          # Port(s) that the container listens on inside the pod network
+          ports:
+            - containerPort: 80
+              name: http
+
+          # Resource requests (guaranteed allocation) and limits (maximum cap) to prevent node starvation
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
+
+          # Readiness probe checks if the container is ready to accept user requests before sending traffic
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          # Liveness probe monitors container health and restarts it automatically if unresponsive
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20

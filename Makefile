@@ -5,6 +5,7 @@ install:
 
 test:
 	cd Frontend && npm run lint
+	cd Frontend && npm test
 
 build:
 	cd Frontend && npm run build

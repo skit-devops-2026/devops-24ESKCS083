@@ -97,5 +97,25 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
   # ---------------------------------------------------------------------------
-  # M5 — Deployment. Add a deploy job here.
+  # M6 — Deploy to Render
+  # Triggers a re-deploy of the Render web service by calling the Render Deploy Hook.
+  # Prerequisites:
+  #   1. Create a web service on https://render.com pointed at this repo.
+  #   2. Set the Docker image to: ghcr.io/skit-devops-2026/devops-24eskcs083:latest
+  #   3. Copy the "Deploy Hook" URL from the service's Settings tab.
+  #   4. Add it as a repository secret named RENDER_DEPLOY_HOOK_URL.
   # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to Render
+    needs: docker
+    runs-on: ubuntu-latest
+    # Only deploy from the main branch, not from PRs or feature branches
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      # Step 1: Trigger Render to pull the freshly-pushed Docker image and redeploy
+      - name: Trigger Render deploy hook
+        run: |
+          curl -fsSL --retry 3 \
+            "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
+            -o /dev/null \
+            -w "HTTP %{http_code}\n"

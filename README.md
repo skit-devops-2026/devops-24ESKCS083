@@ -26,9 +26,35 @@ make run
 
 ## Live URL
 
-<Add once M5 is done. Until then, leave as is.>
+> **TODO (M6):** Deploy the Docker image from GHCR to a cloud platform (Render / Railway / Fly.io) and replace this line with the live HTTPS URL.
 
 ## Health endpoint
 
 `GET /health` returns the running commit SHA. See `Makefile` and the milestone
 sheet for why this is required.
+
+## Monitoring
+
+The monitoring stack (Prometheus + Grafana + nginx-prometheus-exporter) lives in [`monitoring/`](monitoring/README.md).
+
+```bash
+# Start app + monitoring
+docker compose -f docker-compose.yml -f monitoring/docker-compose.monitoring.yml up -d
+```
+
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000
+
+## Kubernetes
+
+Kubernetes manifests for deploying to a cluster live in [`k8s/`](k8s/):
+
+| File | Purpose |
+|------|---------|
+| `k8s/deployment.yaml` | Deploys 2 replicas of the frontend pod |
+| `k8s/service.yaml` | Exposes the deployment via NodePort 30080 |
+
+```bash
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+```

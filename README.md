@@ -26,7 +26,7 @@ make run
 
 ## Live URL
 
-> **TODO (M6):** Deploy the Docker image from GHCR to a cloud platform (Render / Railway / Fly.io) and replace this line with the live HTTPS URL.
+**https://craftcv-1cjq.onrender.com**
 
 ## Health endpoint
 

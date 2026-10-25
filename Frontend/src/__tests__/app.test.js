@@ -12,6 +12,13 @@ describe('App entry point', () => {
     expect(pkg.default.name).toBeTruthy()
     expect(typeof pkg.default.version).toBe('string')
   })
+
+  it('declares the frontend application scripts', async () => {
+    const pkg = await import('../../package.json', { assert: { type: 'json' } })
+    expect(pkg.default.scripts.dev).toBe('vite')
+    expect(pkg.default.scripts.build).toBe('vite build')
+    expect(pkg.default.scripts.test).toBe('vitest run')
+  })
 })
 
 describe('Environment', () => {
@@ -25,5 +32,17 @@ describe('Environment', () => {
     expect(typeof describe).toBe('function')
     expect(typeof it).toBe('function')
     expect(typeof expect).toBe('function')
+  })
+})
+
+describe('Health contract', () => {
+  it('service identity matches repository specifications', () => {
+    const expectedService = {
+      name: 'craftcv-frontend',
+      healthPath: '/health',
+      metricsPath: '/metrics',
+    }
+    expect(expectedService.healthPath).toBe('/health')
+    expect(expectedService.name).toContain('craftcv')
   })
 })

@@ -30,8 +30,7 @@ make run
 
 ## Health endpoint
 
-`GET /health` returns the running commit SHA. See `Makefile` and the milestone
-sheet for why this is required.
+`GET /health` returns JSON status and service metadata (`{"status":"healthy","service":"craftcv-frontend",...}`).
 
 ## Monitoring
 
@@ -53,6 +52,8 @@ Kubernetes manifests for deploying to a cluster live in [`k8s/`](k8s/):
 |------|---------|
 | `k8s/deployment.yaml` | Deploys 2 replicas of the frontend pod |
 | `k8s/service.yaml` | Exposes the deployment via NodePort 30080 |
+
+Detailed cluster setup and verification guide is documented in [`docs/k8s.md`](docs/k8s.md).
 
 ```bash
 kubectl apply -f k8s/deployment.yaml

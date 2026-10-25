@@ -1,0 +1,68 @@
+# Monitoring stack for CraftCV
+#
+# Extends the base docker-compose.yml with Prometheus + Grafana + nginx-prometheus-exporter.
+# Run with:  docker compose -f docker-compose.yml -f monitoring/docker-compose.monitoring.yml up
+#
+# Services:
+#   prometheus      — collects and stores metrics (port 9090)
+#   grafana         — visualises metrics dashboards (port 3000)
+#   nginx-exporter  — exposes Nginx stub_status metrics for Prometheus (port 9113)
+
+services:
+  # ---------------------------------------------------------------------------
+  # nginx-prometheus-exporter
+  # Reads Nginx stub_status page and converts it to Prometheus /metrics format.
+  # ---------------------------------------------------------------------------
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.1.0
+    # Point the exporter at the stub_status endpoint exposed by the frontend container
+    command:
+      - "--nginx.scrape-uri=http://frontend/stub_status"
+    ports:
+      - "9113:9113"
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Prometheus
+  # Scrapes metrics from the nginx-exporter and itself.
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes:
+      # Mount the Prometheus configuration file from this directory
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Named volume for persistent time-series data
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      # Keep 15 days of data
+      - "--storage.tsdb.retention.time=15d"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Grafana
+  # Provides dashboards that visualise the Prometheus data.
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.1.0
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      # Default admin credentials — change before any public deployment
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:

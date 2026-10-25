@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  # Unique name identifying this Service within the Kubernetes namespace
+  name: craftcv-frontend
+  # Labels used for organizing, querying, and grouping Kubernetes objects
+  labels:
+    app: craftcv-frontend
+spec:
+  # Service type NodePort exposes the service on each node's IP at a static port (nodePort)
+  # This makes the frontend accessible from outside the cluster without requiring an external load balancer
+  type: NodePort
+
+  # Label selector that routes incoming traffic to all Pods matching 'app: craftcv-frontend'
+  selector:
+    app: craftcv-frontend
+
+  # Network port definitions configuring routing from node external port to container port
+  ports:
+    # Port exposed internally within the cluster on the Service's ClusterIP
+    - port: 80
+      # Port on the target container inside the Pod where Nginx is listening
+      targetPort: 80
+      # Static port assigned on each Kubernetes cluster node for direct external access (valid range: 30000-32767)
+      nodePort: 30080
+      # Protocol used for network communication
+      protocol: TCP
+      # Descriptive name for the port configuration
+      name: http

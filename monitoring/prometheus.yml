@@ -1,0 +1,37 @@
+# Prometheus configuration for CraftCV frontend monitoring
+# Scrapes metrics from the Nginx-served frontend container via the /metrics endpoint
+
+global:
+  # How frequently Prometheus scrapes all configured targets
+  scrape_interval: 15s
+  # How frequently Prometheus evaluates alerting rules
+  evaluation_interval: 15s
+
+# Alertmanager configuration (placeholder; wire up when Alertmanager is deployed)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rule files containing alerting and recording rules
+rule_files: []
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring — scrapes its own /metrics endpoint
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # CraftCV frontend — nginx-prometheus-exporter exposes Nginx stub_status metrics
+  # Run nginx-prometheus-exporter alongside the frontend container (see docker-compose.yml)
+  - job_name: "craftcv-frontend"
+    static_configs:
+      - targets: ["nginx-exporter:9113"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+    # Labels attached to every metric scraped from this job
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "craftcv-frontend"
